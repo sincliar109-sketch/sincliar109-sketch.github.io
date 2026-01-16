@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>MBTI 深度人格测试 | Jean Studio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { box-sizing: border-box; }
+    :root{
+      --bg0:#000;
+      --bg1:#060814;
+      --bg2:#0a0d1f;
+
+      --ink:#f6f7ff;
+      --muted:#aab0d8;
+
+      --line:rgba(255,255,255,.12);
+
+      --neon:#7ad0ff;
+      --neon2:#8b8cff;
+      --neon3:#ffb3ff;
+
+      --card:rgba(10,12,26,.94);
+      --card2:rgba(8,9,18,.88);
+
+      --shadow:0 20px 60px rgba(0,0,0,.75);
+      --glow:0 0 10px rgba(122,208,255,.65), 0 0 24px rgba(139,140,255,.35);
+    }
+
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+      background: radial-gradient(circle at top, #101326 0, #04040b 55%, #000 100%);
+      color:var(--ink);
+      min-height:100vh;
+    }
+
+    /* “结果页完全分开”的感觉：hash 切页 + 全黑底 */
+    body.result-mode{
+      background: radial-gradient(circle at top, #05060e 0, #010103 65%, #000 100%);
+    }
+
+    .page{
+      min-height:100vh;
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+      padding:28px 10px;
+    }
+
+    .hidden{ display:none; }
+
+    /* ====== 答题页容器（黑底+蓝色题目发光） ====== */
+    #quizPage .container{
+      max-width: 900px;
+      width: 100%;
+      background: radial-gradient(circle at top left, rgba(18,20,42,.9) 0, rgba(6,7,16,.92) 55%);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 22px 16px 22px;
+      border: 1px solid rgba(122,208,255,.22);
+      position:relative;
+      overflow:hidden;
+    }
+    #quizPage .container:before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(122,208,255,.14), transparent 55%),
+        radial-gradient(circle at 80% 10%, rgba(139,140,255,.12), transparent 55%),
+        radial-gradient(circle at 50% 120%, rgba(255,179,255,.08), transparent 60%);
+      pointer-events:none;
+      z-index:0;
+    }
+    #quizPage .container > *{ position:relative; z-index:1; }
+
+    @media (min-width:768px){
+      #quizPage .container{ padding: 28px 34px 26px; }
+    }
+
+    h1{
+      margin:0;
+      font-size:22px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+    }
+    .quiz-sub{
+      margin-top:6px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .start-box{
+      margin-top:18px;
+      font-size:13px;
+      line-height:1.7;
+      color:#d7dbff;
+      background: rgba(6,8,18,.75);
+      border-radius:18px;
+      padding:12px 14px;
+      border:1px solid rgba(122,208,255,.22);
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius:999px;
+      padding:9px 22px;
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background: linear-gradient(135deg, var(--neon), var(--neon2));
+      color:#020308;
+      box-shadow: 0 14px 30px rgba(122,208,255,.35);
+      margin-top:14px;
+      transition: transform .1s ease, box-shadow .1s ease, filter .15s ease;
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 18px 40px rgba(122,208,255,.52);
+      filter: brightness(1.03);
+    }
+    .btn:active{
+      transform: translateY(0);
+      box-shadow: 0 9px 22px rgba(122,208,255,.28);
+    }
+    .btn-secondary{
+      background:transparent;
+      border:1px solid rgba(155,165,230,.6);
+      color:#cbd1ff;
+      box-shadow:none;
+      text-transform:none;
+      letter-spacing:.03em;
+      padding:7px 13px;
+      font-size:12px;
+      margin-top:0;
+    }
+    .btn-secondary:hover{
+      background: rgba(108,118,203,.16);
+      box-shadow:none;
+    }
+    .btn[disabled]{ opacity:.4; cursor:default; transform:none; box-shadow:none; }
+
+    /* 进度条 */
+    .progress-wrap{ margin-top:18px; margin-bottom:10px; }
+    .progress-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size:11px;
+      color:#9ea3e9;
+      margin-bottom:6px;
+    }
+    .progress-track{
+      width:100%;
+      height:5px;
+      border-radius:999px;
+      background: rgba(54,58,102,.55);
+      overflow:hidden;
+    }
+    .progress-fill{
+      height:100%;
+      width:0%;
+      border-radius:inherit;
+      background: linear-gradient(90deg, var(--neon), var(--neon2), var(--neon3));
+      transition: width .25s ease;
+    }
+
+    /* 问题卡片 */
+    .question-shell{ margin-top:10px; }
+    .question-card{
+      background: rgba(2,3,8,.78);
+      border-radius:20px;
+      border: 1px solid rgba(122,208,255,.22);
+      padding:16px 14px 14px;
+      display:none;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    @media (min-width:768px){
+      .question-card{ padding:20px 20px 16px; }
+    }
+    .question-card.active{
+      display:block;
+      animation: fadeIn .18s ease-out;
+    }
+    @keyframes fadeIn{
+      from{ opacity:0; transform: translateY(4px); }
+      to{ opacity:1; transform: translateY(0); }
+    }
+
+    .q-header{
+      display:flex;
+      gap:10px;
+      align-items:baseline;
+      margin-bottom:10px;
+    }
+    .q-number{
+      font-size:12px;
+      color:#8e93ff;
+      font-weight:700;
+      min-width:34px;
+    }
+    .q-text{
+      font-size:15px;
+      line-height:1.65;
+      color:#8ec9ff;                 /* 可爱蓝 */
+      text-shadow: var(--glow);      /* 发光 */
+      letter-spacing:.02em;
+    }
+
+    /* 竖向选项卡（P2 风格竖排） */
+    .options{
+      margin-top:8px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .option-label{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: linear-gradient(135deg, rgba(14,16,34,.82), rgba(4,5,12,.92));
+      cursor:pointer;
+      font-size:13px;
+      color:#eef0ff;
+      transition: border-color .15s ease, box-shadow .15s ease, transform .08s ease, background .15s ease;
+    }
+    .option-label:hover{
+      border-color: rgba(122,208,255,.55);
+      box-shadow: 0 10px 24px rgba(86,149,255,.26);
+      transform: translateY(-1px);
+    }
+    .option-label.selected{
+      border-color: rgba(122,208,255,.95);
+      background: radial-gradient(circle at top, rgba(122,208,255,.12), rgba(3,4,10,.94));
+      box-shadow: 0 14px 28px rgba(105,197,255,.34);
+    }
+    .option-label input[type="radio"]{ display:none; }
+
+    .actions{
+      margin-top:14px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:flex-end;
+      align-items:center;
+    }
+    .hint{ font-size:11px; color:#9aa2df; margin-right:auto; }
+    .error{ font-size:12px; color:#ff8b94; margin-top:6px; display:none; }
+
+    /* ====== 结果页（全黑，答题页完全隐藏，像“跳转”） ====== */
+    #resultPage{ display:none; }
+    #resultPage .container{
+      max-width: 980px;
+      width: 100%;
+      background: transparent; /* 全黑底来自 body */
+      border-radius: 26px;
+      padding: 10px 0 26px;
+    }
+
+    /* 顶部大标题 */
+    .result-hero{
+      text-align:center;
+      padding: 8px 14px 6px;
+      margin-bottom: 12px;
+    }
+    .hero-type{
+      font-family: ui-serif, "Times New Roman", Georgia, serif;
+      font-size: 56px;
+      letter-spacing: .22em;
+      margin: 0;
+      color: #f6f7ff;
+      text-shadow: 0 0 14px rgba(122,208,255,.42);
+    }
+    @media (min-width:768px){
+      .hero-type{ font-size: 72px; }
+    }
+    .hero-subline{
+      margin-top: 8px;
+      color: rgba(235,238,255,.8);
+      font-size: 12px;
+      letter-spacing: .08em;
+    }
+    .hero-animal{
+      margin-top: 6px;
+      font-size: 13px;
+      color: rgba(122,208,255,.95);
+      text-shadow: 0 0 10px rgba(122,208,255,.35);
+    }
+    .hero-animal span{
+      color: rgba(255,255,255,.68);
+      margin-right: 8px;
+    }
+
+    /* 结果主卡片（黑金改成黑蓝霓虹） */
+    .result-card{
+      margin: 0 auto;
+      max-width: 920px;
+      background: radial-gradient(circle at top, rgba(14,16,34,.78) 0, rgba(2,3,8,.82) 65%);
+      border: 1px solid rgba(122,208,255,.18);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 18px 14px 16px;
+      position: relative;
+      overflow:hidden;
+    }
+    .result-card:before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(122,208,255,.10), transparent 55%),
+        radial-gradient(circle at 80% 10%, rgba(139,140,255,.09), transparent 55%),
+        radial-gradient(circle at 50% 120%, rgba(255,179,255,.06), transparent 65%);
+      pointer-events:none;
+    }
+    .result-card > *{ position:relative; z-index:1; }
+
+    /* 双栏隐形格：灵魂共振 / 关系张力 */
+    .duo-grid{
+      margin-top: 10px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      overflow:hidden;
+      background: rgba(0,0,0,.18);
+    }
+    .duo-cell{
+      padding: 12px 12px 10px;
+      min-height: 82px;
+      position:relative;
+    }
+    .duo-cell + .duo-cell{
+      border-left: 1px solid rgba(255,255,255,.10);
+    }
+    .duo-label{
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.55);
+      margin-bottom: 8px;
+    }
+    .duo-type{
+      font-family: ui-serif, "Times New Roman", Georgia, serif;
+      font-size: 34px;
+      letter-spacing: .18em;
+      margin: 0;
+      line-height: 1.05;
+    }
+    .duo-type.soul{ color: rgba(247, 216, 124, .95); }  /* 一冷一暖，像你图里 */
+    .duo-type.karma{ color: rgba(220, 226, 255, .92); }
+    .duo-cn{
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,.72);
+    }
+
+    /* 信息条：适合工作 / 关键词 / 使用建议 */
+    .info-grid{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media (min-width: 820px){
+      .info-grid{ grid-template-columns: 1.05fr .95fr; }
+    }
+    .info-box{
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      padding: 12px 12px 10px;
+    }
+    .info-title{
+      font-size: 12px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(122,208,255,.95);
+      text-shadow: 0 0 10px rgba(122,208,255,.25);
+      margin-bottom: 8px;
+    }
+    .chip-row{ display:flex; flex-wrap:wrap; gap: 6px; }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: rgba(245,247,255,.88);
+    }
+    .chip strong{ color: rgba(255,255,255,.65); font-weight: 600; }
+
+    /* 分区正文 */
+    .section{
+      margin-top: 14px;
+      font-size: 13px;
+      line-height: 1.85;
+      color: rgba(245,247,255,.92);
+    }
+    .section-title{
+      font-size: 12px;
+      letter-spacing: .20em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      color: rgba(255,255,255,.82);
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .section-title .bar{
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: rgba(122,208,255,.95);
+      box-shadow: 0 0 12px rgba(122,208,255,.45);
+      flex: 0 0 auto;
+    }
+    .section-title .cn{
+      color: rgba(122,208,255,.95);
+      text-shadow: 0 0 10px rgba(122,208,255,.22);
+      letter-spacing: .08em;
+      font-weight: 700;
+    }
+
+    /* 成长轨迹：折线图 + 阶段要点 */
+    .life-arc{
+      margin-top: 10px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      border-radius: 18px;
+      padding: 12px 12px 10px;
+    }
+    .arc-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .arc-caption{
+      font-size: 12px;
+      color: rgba(255,255,255,.75);
+    }
+    .arc-caption strong{
+      color: rgba(122,208,255,.95);
+      text-shadow: 0 0 10px rgba(122,208,255,.22);
+    }
+    .arc-svg{
+      width: 100%;
+      height: 120px;
+      display:block;
+      border-radius: 14px;
+      background: radial-gradient(circle at top, rgba(122,208,255,.08), rgba(0,0,0,0) 60%);
+    }
+
+    .arc-list{
+      margin-top: 10px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media (min-width: 820px){
+      .arc-list{ grid-template-columns: 1fr 1fr 1fr; }
+    }
+    .arc-item{
+      border-top: 1px solid rgba(255,255,255,.10);
+      padding-top: 10px;
+    }
+    .arc-item:first-child{ border-top: none; padding-top: 0; }
+    @media (min-width: 820px){
+      .arc-item{ border-top:none; padding-top:0; border-left:1px solid rgba(255,255,255,.10); padding-left:12px; }
+      .arc-item:first-child{ border-left:none; padding-left:0; }
+    }
+    .arc-stage{
+      font-size: 12px;
+      color: rgba(255,255,255,.82);
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+    .dotline{
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+      margin-bottom: 6px;
+      color: rgba(245,247,255,.88);
+      line-height: 1.55;
+      font-size: 12.5px;
+    }
+    .dot{
+      color: rgba(122,208,255,.98);
+      font-size: 18px;
+      line-height: 1;
+      margin-top: 1px;
+      text-shadow: 0 0 10px rgba(122,208,255,.35);
+      flex: 0 0 auto;
+    }
+
+    /* 建议列表 */
+    .advice-list{ margin: 6px 0 0; padding-left: 18px; }
+    .advice-list li{ margin-bottom: 4px; }
+
+    .closing{
+      margin-top: 14px;
+      font-size: 12px;
+      color: rgba(255,255,255,.72);
+      text-align: center;
+      padding: 10px 12px 0;
+    }
+
+    .back-row{
+      margin-top: 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size: 11px;
+      color: rgba(255,255,255,.70);
+      max-width: 920px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ================= 答题页 ================= -->
+<div id="quizPage" class="page">
+  <div class="container">
+    <h1>MBTI 深度人格测试</h1>
+    <div class="quiz-sub">24 题，用一点诗意，帮你把自己看清楚一点。</div>
+
+    <!-- 开始说明 -->
+    <div id="introArea" class="start-box">
+      所有题目都没有“标准答案”，只需要选更像你的一项即可。
+      <br>
+      <button class="btn" id="startBtn">开始答题</button>
+    </div>
+
+    <!-- 问题区域 -->
+    <div id="quizArea" class="hidden">
+      <div class="progress-wrap">
+        <div class="progress-top">
+          <div id="progressText">第 1 / 24 题</div>
+          <div id="progressHint">跟着第一反应选就好。</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+
+      <form id="questionForm" class="question-shell">
+
+        <!-- Q1-Q24（题目保持你的原样） -->
+
+        <div class="question-card" data-q="1">
+          <div class="q-header">
+            <div class="q-number">Q1</div>
+            <div class="q-text">如果你的一生是一部电影，片尾字幕出现时的背景画面是：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q1" value="A"><span>A. 冬夜的街灯下，你一个人缓慢地走着，脚步声很清晰。</span></label>
+            <label class="option-label"><input type="radio" name="q1" value="B"><span>B. 海边的落日，你把瓶中信扔进海里，风吹乱你的发。</span></label>
+            <label class="option-label"><input type="radio" name="q1" value="C"><span>C. 熙攘的城市，你从旋转门里走出，未来在你脚下展开。</span></label>
+            <label class="option-label"><input type="radio" name="q1" value="D"><span>D. 森林的小屋，你关上门，背后是整片世界的温柔。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="2">
+          <div class="q-header">
+            <div class="q-number">Q2</div>
+            <div class="q-text">如果你能选择一种“超能力”，你会选：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q2" value="A"><span>A. 触碰他人即可看到对方的真实情绪。</span></label>
+            <label class="option-label"><input type="radio" name="q2" value="B"><span>B. 能瞬间到达任何你想去的地方。</span></label>
+            <label class="option-label"><input type="radio" name="q2" value="C"><span>C. 与过去的自己隔空对话。</span></label>
+            <label class="option-label"><input type="radio" name="q2" value="D"><span>D. 让时间暂停十分钟，只属于你。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="3">
+          <div class="q-header">
+            <div class="q-number">Q3</div>
+            <div class="q-text">在下雨天，你最像哪一种画面：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q3" value="A"><span>A. 不打伞走在雨里，被淋得彻底。</span></label>
+            <label class="option-label"><input type="radio" name="q3" value="B"><span>B. 坐在窗边，看雨滴顺着玻璃滑落。</span></label>
+            <label class="option-label"><input type="radio" name="q3" value="C"><span>C. 拉上朋友一起冲进雨里，大笑奔跑。</span></label>
+            <label class="option-label"><input type="radio" name="q3" value="D"><span>D. 躺在床上，盖着毯子听雨入睡。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="4">
+          <div class="q-header">
+            <div class="q-number">Q4</div>
+            <div class="q-text">如果“勇气”是一种饮料，你会选择：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q4" value="A"><span>A. 烈酒：一饮而尽，呛得眼眶发红。</span></label>
+            <label class="option-label"><input type="radio" name="q4" value="B"><span>B. 冰水：清醒、纯粹，带一点冷意。</span></label>
+            <label class="option-label"><input type="radio" name="q4" value="C"><span>C. 柠檬汽水：冒泡、甜酸，像青春。</span></label>
+            <label class="option-label"><input type="radio" name="q4" value="D"><span>D. 温牛奶：安稳、柔软，让人睡得很好。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="5">
+          <div class="q-header">
+            <div class="q-number">Q5</div>
+            <div class="q-text">你面前有四扇门，你会先推开哪一扇：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q5" value="A"><span>A. 镶金的门，里面是喧嚣与灯光。</span></label>
+            <label class="option-label"><input type="radio" name="q5" value="B"><span>B. 旧木门，缝隙里透出温暖的火光。</span></label>
+            <label class="option-label"><input type="radio" name="q5" value="C"><span>C. 半透明的玻璃门，模糊看见惊喜。</span></label>
+            <label class="option-label"><input type="radio" name="q5" value="D"><span>D. 简单的白色门，像新世界的入口。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="6">
+          <div class="q-header">
+            <div class="q-number">Q6</div>
+            <div class="q-text">如果你是一段旋律，你更像：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q6" value="A"><span>A. 激烈的小提琴独奏，像风暴一样冲撞。</span></label>
+            <label class="option-label"><input type="radio" name="q6" value="B"><span>B. 潜入心底的钢琴前奏，安静又深刻。</span></label>
+            <label class="option-label"><input type="radio" name="q6" value="C"><span>C. 轻快上头的流行歌副歌。</span></label>
+            <label class="option-label"><input type="radio" name="q6" value="D"><span>D. 夜里反复拨动的吉他和弦。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="7">
+          <div class="q-header">
+            <div class="q-number">Q7</div>
+            <div class="q-text">你想象中遇见“命运”的方式更像：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q7" value="A"><span>A. 正面相撞，像急刹车那样猛烈。</span></label>
+            <label class="option-label"><input type="radio" name="q7" value="B"><span>B. 它悄悄坐在你旁边，你后来才察觉。</span></label>
+            <label class="option-label"><input type="radio" name="q7" value="C"><span>C. 你追着它跑，终于一把抓住。</span></label>
+            <label class="option-label"><input type="radio" name="q7" value="D"><span>D. 在某个静默清晨，你轻轻把它拥住。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="8">
+          <div class="q-header">
+            <div class="q-number">Q8</div>
+            <div class="q-text">午夜你最想收到的一条短信是：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q8" value="A"><span>A. “我在楼下。”</span></label>
+            <label class="option-label"><input type="radio" name="q8" value="B"><span>B. “睡了吗？我有话想说。”</span></label>
+            <label class="option-label"><input type="radio" name="q8" value="C"><span>C. “突然好想你。”</span></label>
+            <label class="option-label"><input type="radio" name="q8" value="D"><span>D. “别怕，我在。”</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="9">
+          <div class="q-header">
+            <div class="q-number">Q9</div>
+            <div class="q-text">如果你只能留下一个“日常瞬间”，你会选：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q9" value="A"><span>A. 某次被笑到喘不过气。</span></label>
+            <label class="option-label"><input type="radio" name="q9" value="B"><span>B. 某次夜里聊到很晚的长谈。</span></label>
+            <label class="option-label"><input type="radio" name="q9" value="C"><span>C. 某次走在路上突然觉得世界很温柔。</span></label>
+            <label class="option-label"><input type="radio" name="q9" value="D"><span>D. 某次被人拥抱的那一瞬间。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="10">
+          <div class="q-header">
+            <div class="q-number">Q10</div>
+            <div class="q-text">你希望别人怎么记住你：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q10" value="A"><span>A. Fierce：有锋芒、有力量的人。</span></label>
+            <label class="option-label"><input type="radio" name="q10" value="B"><span>B. Quiet：温柔有深度的人。</span></label>
+            <label class="option-label"><input type="radio" name="q10" value="C"><span>C. Bright：闪闪发光，带动别人的人。</span></label>
+            <label class="option-label"><input type="radio" name="q10" value="D"><span>D. Strange：独特、有趣、不可复制的人。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="11">
+          <div class="q-header">
+            <div class="q-number">Q11</div>
+            <div class="q-text">如果一种动物要作为你的守护灵，你会选：</div>
+          </div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q11" value="A"><span>A. 狼：孤独、凶悍、忠诚。</span></label>
+            <label class="option-label"><input type="radio" name="q11" value="B"><span>B. 鹿：敏感、优雅、心软。</span></label>
+            <label class="option-label"><input type="radio" name="q11" value="C"><span>C. 猫：独立、魅力、神秘。</span></label>
+            <label class="option-label"><input type="radio" name="q11" value="D"><span>D. 海豚：聪明、社交、带着光。</span></label>
+          </div>
+        </div>
+
+        <!-- MBTI 打分题 12-24 -->
+        <div class="question-card" data-q="12">
+          <div class="q-header"><div class="q-number">Q12</div><div class="q-text">一天结束时，最能让你“回血”的方式是：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q12" value="A"><span>A. 和朋友语音/视频，疯狂分享今天发生的事。</span></label>
+            <label class="option-label"><input type="radio" name="q12" value="B"><span>B. 约人出去吃宵夜或散步，哪怕只聊一会儿。</span></label>
+            <label class="option-label"><input type="radio" name="q12" value="C"><span>C. 戴上耳机，一个人走一段路，让脑子慢慢安静。</span></label>
+            <label class="option-label"><input type="radio" name="q12" value="D"><span>D. 回到房间关上门，自己待着刷刷手机/发发呆。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="13">
+          <div class="q-header"><div class="q-number">Q13</div><div class="q-text">在一场有点正式的聚会里，你更像：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q13" value="A"><span>A. 在不同小圈子之间游走，跟所有人都聊两句。</span></label>
+            <label class="option-label"><input type="radio" name="q13" value="B"><span>B. 和三两熟人黏在一起，但整场都挺活跃。</span></label>
+            <label class="option-label"><input type="radio" name="q13" value="C"><span>C. 找到一个角落，安静观察大家的互动。</span></label>
+            <label class="option-label"><input type="radio" name="q13" value="D"><span>D. 待一会儿就想提前离开，一个人回家最舒服。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="14">
+          <div class="q-header"><div class="q-number">Q14</div><div class="q-text">看到群聊/朋友圈很热闹的时候，你会：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q14" value="A"><span>A. 立刻进去接梗，生怕错过什么话题。</span></label>
+            <label class="option-label"><input type="radio" name="q14" value="B"><span>B. 找个时机发一句，顺势加入聊天。</span></label>
+            <label class="option-label"><input type="radio" name="q14" value="C"><span>C. 默默刷一圈，看完就退，不一定说话。</span></label>
+            <label class="option-label"><input type="radio" name="q14" value="D"><span>D. 看一眼觉得吵，直接划走，当作没看到。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="15">
+          <div class="q-header"><div class="q-number">Q15</div><div class="q-text">当你在学一个全新的东西时，你更希望：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q15" value="A"><span>A. 先弄清楚步骤、例题和具体操作。</span></label>
+            <label class="option-label"><input type="radio" name="q15" value="B"><span>B. 有清晰的模板和示范，再照着练。</span></label>
+            <label class="option-label"><input type="radio" name="q15" value="C"><span>C. 先了解背后的原理和整体框架，再看细节。</span></label>
+            <label class="option-label"><input type="radio" name="q15" value="D"><span>D. 听别人讲这个东西会改变什么、有什么可能性。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="16">
+          <div class="q-header"><div class="q-number">Q16</div><div class="q-text">当你听到“未来”这个词，你脑子里先浮现：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q16" value="A"><span>A. 工作、收入、生活稳不稳定。</span></label>
+            <label class="option-label"><input type="radio" name="q16" value="B"><span>B. 自己可能住在哪、每天大致在做什么。</span></label>
+            <label class="option-label"><input type="radio" name="q16" value="C"><span>C. 我会变成一个怎样的人，会有哪些成长。</span></label>
+            <label class="option-label"><input type="radio" name="q16" value="D"><span>D. 世界会变成什么样，有哪些新的秩序与故事。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="17">
+          <div class="q-header"><div class="q-number">Q17</div><div class="q-text">对一件过去的事，你更自然记住的是：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q17" value="A"><span>A. 当时的具体细节：时间、地点、说过的话。</span></label>
+            <label class="option-label"><input type="radio" name="q17" value="B"><span>B. 哪些事实发生了、客观过程是怎样的。</span></label>
+            <label class="option-label"><input type="radio" name="q17" value="C"><span>C. 那一刻的氛围和情绪、故事的“意味”。</span></label>
+            <label class="option-label"><input type="radio" name="q17" value="D"><span>D. 这件事象征着什么、给了自己怎样的启示。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="18">
+          <div class="q-header"><div class="q-number">Q18</div><div class="q-text">当你和别人意见不合时，你第一反应更接近：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q18" value="A"><span>A. 先分析谁的逻辑有问题、哪一边更有道理。</span></label>
+            <label class="option-label"><input type="radio" name="q18" value="B"><span>B. 用例子和数据证明自己的观点更合理。</span></label>
+            <label class="option-label"><input type="radio" name="q18" value="C"><span>C. 察觉对方是不是情绪受伤了，先稳住情绪。</span></label>
+            <label class="option-label"><input type="radio" name="q18" value="D"><span>D. 想的是：这样吵下去，对这段关系会有什么影响。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="19">
+          <div class="q-header"><div class="q-number">Q19</div><div class="q-text">如果你不得不拒绝一个人，你更在意：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q19" value="A"><span>A. 把理由讲清楚，不留误会，这是对事负责。</span></label>
+            <label class="option-label"><input type="radio" name="q19" value="B"><span>B. 拒绝得干脆，不拖泥带水，避免更大消耗。</span></label>
+            <label class="option-label"><input type="radio" name="q19" value="C"><span>C. 对方能不能好受一点，尽量不让他难堪。</span></label>
+            <label class="option-label"><input type="radio" name="q19" value="D"><span>D. 语言要温柔一点，让对方知道“你被尊重了”。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="20">
+          <div class="q-header"><div class="q-number">Q20</div><div class="q-text">别人向你倾诉时，你更自然的反应是：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q20" value="A"><span>A. 帮他拆解问题、分析原因。</span></label>
+            <label class="option-label"><input type="radio" name="q20" value="B"><span>B. 给出具体方案，告诉他“可以怎么做”。</span></label>
+            <label class="option-label"><input type="radio" name="q20" value="C"><span>C. 先认同他的感受，让他觉得被听见。</span></label>
+            <label class="option-label"><input type="radio" name="q20" value="D"><span>D. 陪着他慢慢熬过这段难受，而不是立刻解决。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="21">
+          <div class="q-header"><div class="q-number">Q21</div><div class="q-text">你准备一次旅行时，更常见的做法是：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q21" value="A"><span>A. 提前做好行程表，每天大致安排好。</span></label>
+            <label class="option-label"><input type="radio" name="q21" value="B"><span>B. 至少把交通、住宿和几个关键地点定好。</span></label>
+            <label class="option-label"><input type="radio" name="q21" value="C"><span>C. 订个去程，其他边走边看，随缘探索。</span></label>
+            <label class="option-label"><input type="radio" name="q21" value="D"><span>D. 甚至连具体日期都可以浮动，感觉到了就出发。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="22">
+          <div class="q-header"><div class="q-number">Q22</div><div class="q-text">最能形容你桌面/房间状态的一句是：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q22" value="A"><span>A. 基本整齐，每样东西大概都有固定位置。</span></label>
+            <label class="option-label"><input type="radio" name="q22" value="B"><span>B. 偶尔乱，但会定期整理到“看着顺眼”。</span></label>
+            <label class="option-label"><input type="radio" name="q22" value="C"><span>C. 很乱，但我自己知道东西在哪就行。</span></label>
+            <label class="option-label"><input type="radio" name="q22" value="D"><span>D. 杂乱就是创意源泉，收太干净反而不舒服。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="23">
+          <div class="q-header"><div class="q-number">Q23</div><div class="q-text">当原本排好的计划被打乱时，你通常会：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q23" value="A"><span>A. 很不爽，会花时间重新调整方案。</span></label>
+            <label class="option-label"><input type="radio" name="q23" value="B"><span>B. 虽然不开心，但会尽快重新安排好。</span></label>
+            <label class="option-label"><input type="radio" name="q23" value="C"><span>C. 有点兴奋，觉得说不定会冒出新变化。</span></label>
+            <label class="option-label"><input type="radio" name="q23" value="D"><span>D. 觉得无所谓，很多事本来就难完全按计划走。</span></label>
+          </div>
+        </div>
+
+        <div class="question-card" data-q="24">
+          <div class="q-header"><div class="q-number">Q24</div><div class="q-text">你的 To-do List 更像哪一种：</div></div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q24" value="A"><span>A. 写了就一定要勾掉，不然会很焦虑。</span></label>
+            <label class="option-label"><input type="radio" name="q24" value="B"><span>B. 大部分都会完成，剩下的会统一处理。</span></label>
+            <label class="option-label"><input type="radio" name="q24" value="C"><span>C. 写的时候很认真，最后照感觉完成一部分。</span></label>
+            <label class="option-label"><input type="radio" name="q24" value="D"><span>D. 经常只存在脑子里，很少真正写下来。</span></label>
+          </div>
+        </div>
+
+        <div class="actions">
+          <div class="hint">* 每题选最像你的一个选项就好，不需要想太久。</div>
+          <button type="button" class="btn-secondary" id="prevBtn">上一题</button>
+          <button type="button" class="btn" id="nextBtn">下一题</button>
+          <button type="button" class="btn hidden" id="submitBtn">生成我的人格档案</button>
+        </div>
+        <div class="error" id="errorMsg">这一题还没选哦，随便选一个更像你的就可以。</div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 结果页（“跳转感”） ================= -->
+<div id="resultPage" class="page">
+  <div class="container">
+
+    <div class="result-hero">
+      <h2 class="hero-type" id="heroType">INFP</h2>
+      <div class="hero-subline" id="heroSubtitle">这不是结论，而是一张使用说明书：你可以用它更好地安排自己。</div>
+      <div class="hero-animal" id="heroAnimal"><span>动物原型</span>布偶猫</div>
+    </div>
+
+    <div class="result-card">
+
+      <!-- 双栏隐形格：灵魂共振 / 关系张力 -->
+      <div class="duo-grid" id="duoGrid">
+        <div class="duo-cell">
+          <div class="duo-label">SOUL RESONANCE · 灵魂共振</div>
+          <div class="duo-type soul" id="soulMateType">ENFJ</div>
+          <div class="duo-cn" id="soulMateCn">灵魂伴侣</div>
+        </div>
+        <div class="duo-cell">
+          <div class="duo-label">KARMIC PULL · 关系张力</div>
+          <div class="duo-type karma" id="karmaType">ESTJ</div>
+          <div class="duo-cn" id="karmaCn">业力羁绊</div>
+        </div>
+      </div>
+
+      <!-- 信息：适合工作 + 关键词/能量/沟通 -->
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="info-title">适合工作 · WORK FIT</div>
+          <div class="chip-row" id="workChips"></div>
+        </div>
+        <div class="info-box">
+          <div class="info-title">使用提示 · QUICK GUIDE</div>
+          <div class="chip-row" id="guideChips"></div>
+        </div>
+      </div>
+
+      <!-- 内在底色 -->
+      <div class="section">
+        <div class="section-title"><span class="bar"></span><span class="cn">内在底色</span>· CORE</div>
+        <div id="resultCore"></div>
+      </div>
+
+      <!-- 失衡回声 -->
+      <div class="section">
+        <div class="section-title"><span class="bar"></span><span class="cn">失衡回声</span>· SHADOW TRACE</div>
+        <div id="resultShadow"></div>
+      </div>
+
+      <!-- 显化方式 -->
+      <div class="section">
+        <div class="section-title"><span class="bar"></span><span class="cn">显化方式</span>· MANIFEST</div>
+        <div id="resultReality"></div>
+      </div>
+
+      <!-- 成长轨迹：折线图 + 阶段要点 -->
+      <div class="section">
+        <div class="section-title"><span class="bar"></span><span class="cn">成长轨迹</span>· LIFE ARC</div>
+
+        <div class="life-arc">
+          <div class="arc-top">
+            <div class="arc-caption">
+              <strong>提示：</strong>曲线只是“风格化的趋势”，用来提醒你：每个阶段的难处都不同。
+            </div>
+          </div>
+
+          <!-- SVG 折线图（风格美丽，意思一下） -->
+          <svg class="arc-svg" viewBox="0 0 600 120" preserveAspectRatio="none" aria-label="life arc chart">
+            <defs>
+              <linearGradient id="gLine" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="rgba(122,208,255,0.95)"></stop>
+                <stop offset="55%" stop-color="rgba(139,140,255,0.9)"></stop>
+                <stop offset="100%" stop-color="rgba(255,179,255,0.85)"></stop>
+              </linearGradient>
+              <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge>
+                  <feMergeNode in="blur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+
+            <!-- 细网格 -->
+            <g opacity="0.22" stroke="rgba(255,255,255,0.18)" stroke-width="1">
+              <line x1="60" y1="20" x2="60" y2="110"></line>
+              <line x1="300" y1="20" x2="300" y2="110"></line>
+              <line x1="540" y1="20" x2="540" y2="110"></line>
+              <line x1="40" y1="40" x2="560" y2="40"></line>
+              <line x1="40" y1="70" x2="560" y2="70"></line>
+              <line x1="40" y1="100" x2="560" y2="100"></line>
+            </g>
+
+            <!-- 曲线（点位由 JS 动态更新） -->
+            <path id="arcPath"
+              d="M60,85 C160,30 220,95 300,70 C380,45 450,95 540,55"
+              fill="none" stroke="url(#gLine)" stroke-width="4" filter="url(#softGlow)"/>
+
+            <!-- 节点 -->
+            <g fill="rgba(122,208,255,0.95)" filter="url(#softGlow)">
+              <circle id="p1" cx="60" cy="85" r="5"></circle>
+              <circle id="p2" cx="300" cy="70" r="5"></circle>
+              <circle id="p3" cx="540" cy="55" r="5"></circle>
+            </g>
+
+            <!-- 轴标签 -->
+            <g font-size="11" fill="rgba(255,255,255,0.7)">
+              <text x="40" y="116">探索期</text>
+              <text x="275" y="116">建构期</text>
+              <text x="520" y="116">稳定期</text>
+            </g>
+          </svg>
+
+          <div class="arc-list" id="arcList">
+            <!-- JS 填充三个阶段 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 行动建议 -->
+      <div class="section">
+        <div class="section-title"><span class="bar"></span><span class="cn">行动建议</span>· NOTES</div>
+        <ul class="advice-list" id="resultAdvice"></ul>
+      </div>
+
+      <div class="closing" id="closingLine">
+        你不是要变成某一种“对的性格”，你只是要学会：把自己放到对的环境里。
+      </div>
+    </div>
+
+    <div class="back-row">
+      <span>这份结果是一面镜子，不是牢笼。</span>
+      <button class="btn-secondary" id="redoBtn">重新做一次</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  /* ========= 选项高亮 ========= */
+  function bindOptionHighlight(){
+    document.querySelectorAll(".option-label").forEach(label => {
+      const input = label.querySelector("input[type='radio']");
+      if (!input) return;
+      input.addEventListener("change", () => {
+        const name = input.name;
+        document.querySelectorAll("input[name='" + name + "']").forEach(i => {
+          const parent = i.closest(".option-label");
+          if (parent) parent.classList.remove("selected");
+        });
+        label.classList.add("selected");
+      });
+    });
+  }
+  bindOptionHighlight();
+
+  const introArea = document.getElementById("introArea");
+  const quizArea = document.getElementById("quizArea");
+  const startBtn = document.getElementById("startBtn");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const submitBtn = document.getElementById("submitBtn");
+  const errorMsg = document.getElementById("errorMsg");
+  const progressText = document.getElementById("progressText");
+  const progressFill = document.getElementById("progressFill");
+  const progressHint = document.getElementById("progressHint");
+
+  const quizPage = document.getElementById("quizPage");
+  const resultPage = document.getElementById("resultPage");
+
+  const totalQuestions = 24;
+  let current = 1;
+
+  function showQuestion(idx){
+    document.querySelectorAll(".question-card").forEach(card => card.classList.remove("active"));
+    const card = document.querySelector('.question-card[data-q="' + idx + '"]');
+    if (card) card.classList.add("active");
+
+    progressText.textContent = "第 " + idx + " / " + totalQuestions + " 题";
+    progressFill.style.width = (idx / totalQuestions * 100) + "%";
+
+    prevBtn.disabled = (idx === 1);
+    if (idx === totalQuestions){
+      nextBtn.classList.add("hidden");
+      submitBtn.classList.remove("hidden");
+    }else{
+      nextBtn.classList.remove("hidden");
+      submitBtn.classList.add("hidden");
+    }
+    errorMsg.style.display = "none";
+
+    if (idx <= 11){
+      progressHint.textContent = "氛围感情境题：选更像你的那一幅画面。";
+    }else{
+      progressHint.textContent = "偏 MBTI 的倾向题：选你更常见的状态。";
+    }
+  }
+
+  function isAnswered(q){
+    return !!document.querySelector('input[name="q' + q + '"]:checked');
+  }
+
+  startBtn.addEventListener("click", () => {
+    introArea.classList.add("hidden");
+    quizArea.classList.remove("hidden");
+    current = 1;
+    showQuestion(current);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  prevBtn.addEventListener("click", () => {
+    if (current > 1){
+      current--;
+      showQuestion(current);
+    }
+  });
+
+  nextBtn.addEventListener("click", () => {
+    if (!isAnswered(current)){
+      errorMsg.style.display = "block";
+      return;
+    }
+    if (current < totalQuestions){
+      current++;
+      showQuestion(current);
+      errorMsg.style.display = "none";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  });
+
+  function collectAnswers(){
+    const answers = {};
+    for (let i = 1; i <= totalQuestions; i++){
+      const selected = document.querySelector('input[name="q' + i + '"]:checked');
+      if (!selected) return null;
+      answers[i] = selected.value;
+    }
+    return answers;
+  }
+
+  function calculateMbti(answers){
+    const score = { E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0 };
+    const add = k => score[k] += 1;
+
+    [12,13,14].forEach(q=>{
+      const a = answers[q];
+      if (a === "A" || a === "B") add("E");
+      if (a === "C" || a === "D") add("I");
+    });
+
+    [15,16,17].forEach(q=>{
+      const a = answers[q];
+      if (a === "A" || a === "B") add("S");
+      if (a === "C" || a === "D") add("N");
+    });
+
+    [18,19,20].forEach(q=>{
+      const a = answers[q];
+      if (a === "A" || a === "B") add("T");
+      if (a === "C" || a === "D") add("F");
+    });
+
+    [21,22,23,24].forEach(q=>{
+      const a = answers[q];
+      if (a === "A" || a === "B") add("J");
+      if (a === "C" || a === "D") add("P");
+    });
+
+    const first  = score.E >= score.I ? "E" : "I";
+    const second = score.S >= score.N ? "S" : "N";
+    const third  = score.T >= score.F ? "T" : "F";
+    const fourth = score.J >= score.P ? "J" : "P";
+    return first + second + third + fourth;
+  }
+
+  /* ========= 人格档案（每段 3~4 行，且保持“抽象但贴合倾向”） ========= */
+  const profiles = {
+    INFP:{
+      subtitle:"你更像一座会呼吸的心象世界：柔软、真诚、但绝不随意。",
+      animal:"布偶猫",
+      soulMate:"ENFJ",
+      karma:"ESTJ",
+      tags:["理想主义","高共情","故事感","价值感"],
+      workFit:["写作/内容","心理/社工","文化研究","公益/教育"],
+      guide:{
+        energy:"独处回血",
+        comm:"需要被理解",
+        stress:"容易内耗"
+      },
+      core:[
+        "你对意义高度敏感：一句话、一个表情、一次迟疑，都会被你读出更深的层次。",
+        "你相信真诚，相信“相遇”里隐含的连结；你会为一个小瞬间反复温柔很久。",
+        "你并不软弱——只是你把力量放在了“守住内心的价值”上。"
+      ],
+      shadow:[
+        "压力大时，你会在理想与现实之间拉扯：想开始，又怕破坏心里的完美画面。",
+        "你可能把很多话吞回去，表面安静，内心却反复推演‘我是不是不够好’。",
+        "失衡不是因为你太敏感，而是你太习惯一个人把情绪处理完。"
+      ],
+      manifest:[
+        "你更适合有空间的环境：允许慢热、允许表达、允许把事情做得‘有灵魂’。",
+        "在关系里，你是那种会把他人当成“完整的人”来对待的人，这会让你天然被信任。",
+        "当你把愿景拆成小步执行时，你会变得很强——因为你能长期保持初心。"
+      ],
+      lifeArc:{
+        points:[85,70,55], // 越低越“自洽/稳态”只是风格化；仅用于画图
+        stages:[
+          { name:"探索期", lines:[
+            {a:"优势：情感细腻、价值清晰，能迅速识别什么让你‘发光’。"},
+            {a:"挑战：容易理想化与自责并存，做决定会反复拉扯。"}
+          ]},
+          { name:"建构期", lines:[
+            {a:"优势：开始把热爱变成作品/技能，能形成独特表达。"},
+            {a:"挑战：现实摩擦增多，需要练习边界与执行节奏。"}
+          ]},
+          { name:"稳定期", lines:[
+            {a:"优势：价值体系更稳，你会拥有长期的温柔与坚定。"},
+            {a:"挑战：要学会‘选择承诺’，把少数重要事做深做久。"}
+          ]}
+        ]
+      },
+      advice:[
+        "把‘想得很美’拆成 3 个最小动作：今天只做第一步，也算胜利。",
+        "在重要关系里，把需求说出来：比等对方猜更能保护你。",
+        "定期清空情绪缓存：写作/散步/咨询/运动，选一个长期出口。"
+      ],
+      closing:"你不需要变得更像别人——你只需要更像你自己。"
+    },
+
+    ENTP:{
+      subtitle:"你不是为了稳定答案而来——你来，是为了让世界重新连接。",
+      animal:"银狐",
+      soulMate:"INFJ",
+      karma:"ISFJ",
+      tags:["脑洞","反差感","辩论力","创新"],
+      workFit:["产品创新","咨询/策略","内容策划","创业早期"],
+      guide:{ energy:"社交+独处混合", comm:"观点交换", stress:"容易嘴硬心软" },
+      core:[
+        "你天生会对‘既定答案’起疑：规则对你来说不是墙，而是可被重写的边界。",
+        "你擅长把分散的信息连成一张网，让停滞的东西重新流动起来。",
+        "你真正的优势不是聪明，而是：永远愿意去试另一条路。"
+      ],
+      shadow:[
+        "失衡时，你可能把人当论点，把关系当辩题：赢了逻辑，却不一定赢得理解。",
+        "你也可能用玩笑、反讽、转移来躲避脆弱，让‘认真’无处安放。",
+        "你的难处在于：选择承诺会让你感觉被困，但长期投入又会让你更自由。"
+      ],
+      manifest:[
+        "你更适合高自主度、允许试错的环境：越开放，你越能给出新解法。",
+        "你在团队里是‘变量制造者’：能把大家卡住的地方轻轻撬开。",
+        "当你愿意把聪明用于建设，而不是吐槽，你会变得非常有影响力。"
+      ],
+      lifeArc:{
+        points:[80,68,58],
+        stages:[
+          { name:"探索期", lines:[
+            {a:"优势：学习快、连接强，能从杂乱里抓到新机会。"},
+            {a:"挑战：兴趣太多，容易开始很多、收尾不够。"}
+          ]},
+          { name:"建构期", lines:[
+            {a:"优势：形成方法论，能把创意落到策略与产品上。"},
+            {a:"挑战：需要训练耐心，把短期刺激换成长期复利。"}
+          ]},
+          { name:"稳定期", lines:[
+            {a:"优势：成为‘系统型创新者’，影响范围更大更持久。"},
+            {a:"挑战：学会在关系里温柔表达，而不只靠锋利语言。"}
+          ]}
+        ]
+      },
+      advice:[
+        "把每个灵感配一个“最小可行版本”，先做出来，再谈完美。",
+        "在关系里先回应感受，再输出逻辑，误伤会少很多。",
+        "选一件值得长期投入的事——让你真正享受‘做深’的快感。"
+      ],
+      closing:"你不必停止发明世界；你只要学会留下一两个世界，好好住进去。"
+    }
+  };
+
+  /* 其他类型：为了不让你页面空，如果没写到，就先用 INFP 模板兜底 */
+  const fallbackType = "INFP";
+
+  function profileOf(type){
+    return profiles[type] || profiles[fallbackType];
+  }
+
+  /* ========= 结果页填充 ========= */
+  function setArcPath(points){
+    // points: [y1, y2, y3] 0~100 -> map to svg y 20~105
+    const mapY = v => {
+      const minY = 25, maxY = 105;
+      const t = Math.max(0, Math.min(100, v)) / 100;
+      return minY + (maxY - minY) * t;
+    };
+    const y1 = mapY(points[0]);
+    const y2 = mapY(points[1]);
+    const y3 = mapY(points[2]);
+
+    // smooth cubic between p1(60,y1) p2(300,y2) p3(540,y3)
+    const d = `M60,${y1} C160,${(y1+y2)/2} 220,${(y1+y2)/2} 300,${y2} C380,${(y2+y3)/2} 450,${(y2+y3)/2} 540,${y3}`;
+    document.getElementById("arcPath").setAttribute("d", d);
+
+    document.getElementById("p1").setAttribute("cy", y1);
+    document.getElementById("p2").setAttribute("cy", y2);
+    document.getElementById("p3").setAttribute("cy", y3);
+  }
+
+  function fillTextLines(lines){
+    return lines.map(s => s.trim()).join("<br>");
+  }
+
+  function fillArcList(stageData){
+    const wrap = document.getElementById("arcList");
+    wrap.innerHTML = "";
+    stageData.forEach(st => {
+      const div = document.createElement("div");
+      div.className = "arc-item";
+      div.innerHTML = `
+        <div class="arc-stage">${st.name}</div>
+        ${st.lines.map(x => `
+          <div class="dotline"><div class="dot">·</div><div>${x.a}</div></div>
+        `).join("")}
+      `;
+      wrap.appendChild(div);
+    });
+  }
+
+  function fillResult(type){
+    const p = profileOf(type);
+
+    document.body.classList.add("result-mode");
+    quizPage.style.display = "none";
+    resultPage.style.display = "flex";
+
+    // 真的“跳转感”：用 hash 控制（浏览器返回键也好用）
+    if (location.hash !== "#result") history.pushState({page:"result"}, "", "#result");
+
+    // hero
+    document.getElementById("heroType").textContent = type;
+    document.getElementById("heroSubtitle").textContent = p.subtitle || "这不是结论，而是一张使用说明书：你可以用它更好地安排自己。";
+    document.getElementById("heroAnimal").innerHTML = `<span>动物原型</span>${p.animal || "未知动物"}`;
+
+    // duo grid
+    document.getElementById("soulMateType").textContent = p.soulMate || "--";
+    document.getElementById("karmaType").textContent = p.karma || "--";
+    document.getElementById("soulMateCn").textContent = "灵魂伴侣";
+    document.getElementById("karmaCn").textContent = "关系张力";
+
+    // work fit
+    const work = document.getElementById("workChips");
+    work.innerHTML = "";
+    (p.workFit || []).forEach(x=>{
+      const span = document.createElement("span");
+      span.className = "chip";
+      span.textContent = x;
+      work.appendChild(span);
+    });
+
+    // guide chips（实际建议作用：让用户觉得“有用”）
+    const g = document.getElementById("guideChips");
+    g.innerHTML = "";
+    const guide = p.guide || {};
+    const guideItems = [
+      {k:"能量补给", v: guide.energy || "因人而异"},
+      {k:"沟通偏好", v: guide.comm || "因人而异"},
+      {k:"压力信号", v: guide.stress || "因人而异"},
+      {k:"关键词", v: (p.tags || []).slice(0,2).join(" / ") || "—"}
+    ];
+    guideItems.forEach(it=>{
+      const span = document.createElement("span");
+      span.className = "chip";
+      span.innerHTML = `<strong>${it.k}</strong>${it.v}`;
+      g.appendChild(span);
+    });
+
+    // sections (3~4 行)
+    document.getElementById("resultCore").innerHTML = fillTextLines(p.core || []);
+    document.getElementById("resultShadow").innerHTML = fillTextLines(p.shadow || []);
+    document.getElementById("resultReality").innerHTML = fillTextLines(p.manifest || []);
+
+    // life arc
+    const arc = p.lifeArc || { points:[85,70,55], stages:[] };
+    setArcPath(arc.points || [85,70,55]);
+    fillArcList(arc.stages || []);
+
+    // advice
+    const adviceUl = document.getElementById("resultAdvice");
+    adviceUl.innerHTML = "";
+    (p.advice || []).forEach(a=>{
+      const li = document.createElement("li");
+      li.textContent = a;
+      adviceUl.appendChild(li);
+    });
+
+    // closing
+    document.getElementById("closingLine").textContent = p.closing || "你不需要变得更像别人——你只需要更像你自己。";
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /* ========= 提交 -> 计算 -> “跳转到结果页” ========= */
+  submitBtn.addEventListener("click", () => {
+    if (!isAnswered(current)){
+      errorMsg.style.display = "block";
+      return;
+    }
+    const answers = collectAnswers();
+    if (!answers){
+      errorMsg.style.display = "block";
+      return;
+    }
+    errorMsg.style.display = "none";
+    const type = calculateMbti(answers);
+    fillResult(type);
+  });
+
+  /* ========= 重新开始 ========= */
+  document.getElementById("redoBtn").addEventListener("click", () => {
+    document.body.classList.remove("result-mode");
+    resultPage.style.display = "none";
+    quizPage.style.display = "flex";
+    history.pushState({page:"quiz"}, "", "#quiz");
+
+    // 清空选择
+    document.querySelectorAll("input[type='radio']").forEach(i => i.checked = false);
+    document.querySelectorAll(".option-label").forEach(label => label.classList.remove("selected"));
+
+    introArea.classList.remove("hidden");
+    quizArea.classList.add("hidden");
+    current = 1;
+    progressFill.style.width = "0%";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  /* ========= 支持刷新后仍停留在结果页（像“分开页面”） ========= */
+  window.addEventListener("load", () => {
+    // 默认回到答题页
+    if (!location.hash) history.replaceState({page:"quiz"}, "", "#quiz");
+
+    if (location.hash === "#result"){
+      // 如果你想“刷新还保留上次结果”，可以把最后类型存 localStorage。
+      const last = localStorage.getItem("mbti_last_type") || fallbackType;
+      fillResult(last);
+    } else {
+      // quiz
+      resultPage.style.display = "none";
+      quizPage.style.display = "flex";
+    }
+  });
+
+  // 每次生成结果，保存一次（让“跳转页”更像真的）
+  const _fillResult = fillResult;
+  fillResult = function(type){
+    localStorage.setItem("mbti_last_type", type);
+    _fillResult(type);
+  };
+
+  // 浏览器后退：从结果回到答题
+  window.addEventListener("popstate", () => {
+    if (location.hash === "#quiz"){
+      document.body.classList.remove("result-mode");
+      resultPage.style.display = "none";
+      quizPage.style.display = "flex";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    if (location.hash === "#result"){
+      const last = localStorage.getItem("mbti_last_type") || fallbackType;
+      _fillResult(last);
+    }
+  });
+</script>
+
+</body>
+</html>
